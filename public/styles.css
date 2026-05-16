@@ -130,3 +130,41 @@ button:disabled {
   background: #f8d7da;
   color: #721c24;
 }
+
+.translator-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.language-card {
+  flex: 1;
+  background: #f8f9ff;
+  border: 2px solid #e8ebff;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+}
+
+.language-card .label {
+  display: block;
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.language-card .language {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+}
+
+.arrow {
+  font-size: 28px;
+  font-weight: bold;
+  color: #667eea;
+  margin-top: 12px;
+}
