@@ -75,7 +75,7 @@ async function startTalkingToAI() {
     const selectedVoiceType = document.querySelector('input[name="voiceType"]:checked').value;
     const agentType = selectedVoiceType === 'my-voice' ? 'agent1' : 'agent2';
 
-    const authResponse = await fetch(`http://localhost:3000/api/get-signed-url?agentType=${agentType}`);
+    const authResponse = await fetch(`/api/get-signed-url?agentType=${agentType}`);
     if (!authResponse.ok) {
       const errorData = await authResponse.json().catch(() => ({}));
       throw new Error(errorData.error || `Failed to get signed URL (${authResponse.status})`);
