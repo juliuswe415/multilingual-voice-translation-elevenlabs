@@ -1,50 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ElevenLabs Translator</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
 <body>
   <div class="container">
-    <h2>Voice Translator</h2>
-    
-    <div class="form-group">
-      <label for="sourceLanguageSelect">Source Language (Speak in):</label>
-      <select id="sourceLanguageSelect">
-        <option value="en">English</option>
-        <option value="ru">Russian</option>
-        <option value="zh">Chinese</option>
-        <option value="es">Spanish</option>
-      </select>
-    </div>
+    <h2>Slovak → English Translator</h2>
 
-    <div class="form-group">
-      <label for="destinationLanguageSelect">Destination Language (Translate to):</label>
-      <select id="destinationLanguageSelect">
-        <option value="en">English</option>
-        <option value="ru" selected>Russian</option>
-        <option value="zh">Chinese</option>
-        <option value="es">Spanish</option>
-      </select>
-    </div>
+    <div class="translator-info">
+      <div class="language-card">
+        <span class="label">Speak</span>
+        <span class="language">🇸🇰 Slovak</span>
+      </div>
 
-    <div class="form-group">
-      <label>Voice Type:</label>
-      <div class="radio-group">
-        <label>
-          <input type="radio" name="voiceType" value="predefined" checked>
-          <span style="margin-left: 8px;">Predefined Voice</span>
-        </label>
-        <label>
-          <input type="radio" name="voiceType" value="my-voice">
-          <span style="margin-left: 8px;">My Voice</span>
-        </label>       
+      <div class="arrow">→</div>
+
+      <div class="language-card">
+        <span class="label">Translation</span>
+        <span class="language">🇬🇧 English</span>
       </div>
     </div>
 
     <button id="startBtn">Start Translation</button>
+
     <p id="status">Status: Idle</p>
   </div>
 
@@ -55,6 +28,6 @@
     }
   }
   </script>
+
   <script type="module" src="/app.js"></script>
 </body>
-</html>
