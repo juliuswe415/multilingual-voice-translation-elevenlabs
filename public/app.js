@@ -93,27 +93,24 @@ async function startTalkingToAI() {
     updateStatus("Connecting to translator...", "default");
 
     conversation = await Conversation.startSession({
-  signedUrl: signedUrl,
-
-  overrides: {
-    agent: {
-      firstMessage: getFirstMessage(
-        sourceLangName,
-        destLangName,
-        destLang
-      ),
-
-      language: destLang,
-
-      prompt: {
-        prompt: `You are a real-time translator.
-Translate from ${sourceLangName} to ${destLangName}.
-Only output translated speech.`
-      }
-    }
-  },
-
-  onConnect: () => {
+      signedUrl: signedUrl,
+      overrides: {
+        agent: {
+          firstMessage: getFirstMessage(sourceLangName, destLangName, destLang),
+          language: destLang,
+          instructions: `You are a real-time translator. Your ONLY job is to translate what the user says from ${sourceLangName} to ${destLangName}.
+CRITICAL RULES:
+- Translate everything the user says immediately from ${sourceLangName} to ${destLangName}
+- Respond ONLY in ${destLangName} (the language specified in the conversation language setting)
+- Do NOT engage in conversation or add commentary
+- Do NOT ask questions or provide explanations  
+- Simply translate - nothing more, nothing less
+- Be accurate, clear, and natural in your translations
+- Do not add greetings, farewells, or conversational elements unless the user specifically says them
+- If you detect the user speaking a different language than expected, still translate it to ${destLangName}`
+        }
+      },
+      onConnect: () => {
     isStarting = false;
         updateStatus(`Ready - Speak in ${sourceLangName}, I'll translate to ${destLangName}`, "active");
         startBtn.textContent = "Stop Translation";
