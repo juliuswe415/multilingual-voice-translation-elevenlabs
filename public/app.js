@@ -27,7 +27,7 @@ async function startTalkingToAI() {
 
     updateStatus("Getting authentication...", "default");
 
-    const authResponse = await fetch("/api/get-signed-url?agentType=agent1");
+    const authResponse = await fetch("/api/get-signed-url")
 
     if (!authResponse.ok) {
       const errorData = await authResponse.json().catch(() => ({}));
