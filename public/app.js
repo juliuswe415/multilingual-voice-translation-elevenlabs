@@ -92,16 +92,21 @@ async function startTalkingToAI() {
 
     updateStatus("Connecting to translator...", "default");
 
-    conversation = await Conversation.startSession({
-      signedUrl: signedUrl,
-    
-      
-overrides: {
-  agent: {
-    firstMessage: getFirstMessage(sourceLangName, destLangName, destLang)
-  }
-},
-      onConnect: () => {
+conversation = await Conversation.startSession({
+  signedUrl: signedUrl,
+
+  overrides: {
+    agent: {
+
+      prompt: {
+        prompt: `You are a real-time translator.
+Translate from ${sourceLangName} to ${destLangName}.
+Only output translated speech.`
+      }
+    }
+  },
+
+  onConnect: () => {
     isStarting = false;
         updateStatus(`Ready - Speak in ${sourceLangName}, I'll translate to ${destLangName}`, "active");
         startBtn.textContent = "Stop Translation";
