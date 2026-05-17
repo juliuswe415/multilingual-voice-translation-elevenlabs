@@ -3,12 +3,55 @@ import { Conversation } from "@elevenlabs/client";
 let conversation = null;
 let isStarting = false;
 
+let micStream = null;
+let recorder = null;
+let recordedChunks = [];
+
 const startBtn = document.getElementById("startBtn");
 const statusEl = document.getElementById("status");
 
 function updateStatus(message, type = "default") {
   statusEl.textContent = `Status: ${message}`;
   statusEl.className = type;
+}
+
+function startLocalRecording(stream) {
+  recordedChunks = [];
+
+  if (!MediaRecorder.isTypeSupported("audio/webm")) {
+    updateStatus("Warning: audio/webm recording may not be supported", "error");
+  }
+
+  recorder = new MediaRecorder(stream);
+
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
+
+  recorder.onstop = () => {
+    if (!recordedChunks.length) return;
+
+    const blob = new Blob(recordedChunks, { type: "audio/webm" });
+    const url = URL.createObjectURL(blob);
+
+    const oldLink = document.getElementById("recordingDownloadLink");
+    if (oldLink) oldLink.remove();
+
+    const a = document.createElement("a");
+    a.id = "recordingDownloadLink";
+    a.href = url;
+    a.download = `mic-test-${Date.now()}.webm`;
+    a.textContent = "Download recorded mic audio";
+    a.style.display = "block";
+    a.style.marginTop = "15px";
+    a.style.textAlign = "center";
+
+    document.querySelector(".container").appendChild(a);
+  };
+
+  recorder.start();
 }
 
 async function startTalkingToAI() {
@@ -40,9 +83,9 @@ async function startTalkingToAI() {
       throw new Error("No signed URL received");
     }
 
-    updateStatus("Requesting microphone access without echo cancellation...", "default");
+    updateStatus("Requesting microphone access...", "default");
 
-    const permissionStream = await navigator.mediaDevices.getUserMedia({
+    micStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: false,
         noiseSuppression: false,
@@ -50,7 +93,7 @@ async function startTalkingToAI() {
       }
     });
 
-    permissionStream.getTracks().forEach(track => track.stop());
+    startLocalRecording(micStream);
 
     updateStatus("Connecting to Slovak → English translator...", "default");
 
@@ -74,6 +117,7 @@ async function startTalkingToAI() {
         conversation = null;
         startBtn.textContent = "Start Translation";
         startBtn.disabled = false;
+        stopLocalMicAndRecording();
       },
 
       onDisconnect: () => {
@@ -82,6 +126,7 @@ async function startTalkingToAI() {
         updateStatus("Disconnected", "default");
         startBtn.textContent = "Start Translation";
         startBtn.disabled = false;
+        stopLocalMicAndRecording();
       }
     });
   } catch (error) {
@@ -90,11 +135,28 @@ async function startTalkingToAI() {
     conversation = null;
     startBtn.disabled = false;
     startBtn.textContent = "Start Translation";
+    stopLocalMicAndRecording();
+  }
+}
+
+function stopLocalMicAndRecording() {
+  if (recorder && recorder.state !== "inactive") {
+    recorder.stop();
+  }
+
+  recorder = null;
+
+  if (micStream) {
+    micStream.getTracks().forEach((track) => track.stop());
+    micStream = null;
   }
 }
 
 async function stopConversation() {
-  if (!conversation) return;
+  if (!conversation) {
+    stopLocalMicAndRecording();
+    return;
+  }
 
   try {
     startBtn.disabled = true;
@@ -109,11 +171,15 @@ async function stopConversation() {
     updateStatus("Translation ended", "default");
     startBtn.textContent = "Start Translation";
     startBtn.disabled = false;
+
+    stopLocalMicAndRecording();
   } catch (error) {
     conversation = null;
     updateStatus("Translation ended", "default");
     startBtn.textContent = "Start Translation";
     startBtn.disabled = false;
+
+    stopLocalMicAndRecording();
   }
 }
 
