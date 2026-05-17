@@ -27,7 +27,7 @@ async function startTalkingToAI() {
 
     updateStatus("Getting authentication...", "default");
 
-    const authResponse = await fetch("/api/get-signed-url")
+    const authResponse = await fetch("/api/get-signed-url");
 
     if (!authResponse.ok) {
       const errorData = await authResponse.json().catch(() => ({}));
@@ -40,9 +40,16 @@ async function startTalkingToAI() {
       throw new Error("No signed URL received");
     }
 
-    updateStatus("Requesting microphone access...", "default");
+    updateStatus("Requesting microphone access without echo cancellation...", "default");
 
-    const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const permissionStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+
     permissionStream.getTracks().forEach(track => track.stop());
 
     updateStatus("Connecting to Slovak → English translator...", "default");
