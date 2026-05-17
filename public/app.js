@@ -18,10 +18,6 @@ function updateStatus(message, type = "default") {
 function startLocalRecording(stream) {
   recordedChunks = [];
 
-  if (!MediaRecorder.isTypeSupported("audio/webm")) {
-    updateStatus("Warning: audio/webm recording may not be supported", "error");
-  }
-
   recorder = new MediaRecorder(stream);
 
   recorder.ondataavailable = (event) => {
@@ -54,6 +50,19 @@ function startLocalRecording(stream) {
   recorder.start();
 }
 
+function stopLocalMicAndRecording() {
+  if (recorder && recorder.state !== "inactive") {
+    recorder.stop();
+  }
+
+  recorder = null;
+
+  if (micStream) {
+    micStream.getTracks().forEach((track) => track.stop());
+    micStream = null;
+  }
+}
+
 async function startTalkingToAI() {
   if (isStarting) return;
 
@@ -83,7 +92,7 @@ async function startTalkingToAI() {
       throw new Error("No signed URL received");
     }
 
-    updateStatus("Requesting microphone access...", "default");
+    updateStatus("Requesting microphone access for local test recording...", "default");
 
     micStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -93,16 +102,21 @@ async function startTalkingToAI() {
       }
     });
 
+    const track = micStream.getAudioTracks()[0];
+    console.log("Local mic track settings:", track.getSettings());
+    console.log("Local mic track constraints:", track.getConstraints());
+
     startLocalRecording(micStream);
 
-    updateStatus("Connecting to Slovak → English translator...", "default");
+    updateStatus("Connecting via ElevenLabs SDK websocket mode...", "default");
 
     conversation = await Conversation.startSession({
       signedUrl,
+      connectionType: "websocket",
 
       onConnect: () => {
         isStarting = false;
-        updateStatus("Ready - Speak in Slovak, translation will be in English", "active");
+        updateStatus("Ready via websocket mode - Speak in Slovak", "active");
         startBtn.textContent = "Stop Translation";
         startBtn.disabled = false;
       },
@@ -136,19 +150,6 @@ async function startTalkingToAI() {
     startBtn.disabled = false;
     startBtn.textContent = "Start Translation";
     stopLocalMicAndRecording();
-  }
-}
-
-function stopLocalMicAndRecording() {
-  if (recorder && recorder.state !== "inactive") {
-    recorder.stop();
-  }
-
-  recorder = null;
-
-  if (micStream) {
-    micStream.getTracks().forEach((track) => track.stop());
-    micStream = null;
   }
 }
 
