@@ -16,8 +16,8 @@ let agentSpeakingTimeout = null;
 const SAMPLE_RATE_OUT = 16000;
 const CHUNK_SAMPLES = 1600; // 100 ms pri 16 kHz
 
-const THRESHOLD_IDLE = 0.002;
-const THRESHOLD_AGENT_SPEAKING = 0.04;
+const THRESHOLD_IDLE = 0.0008;
+const THRESHOLD_AGENT_SPEAKING = 0.025;
 
 let pcmBuffer = [];
 
