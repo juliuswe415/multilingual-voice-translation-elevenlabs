@@ -65,9 +65,6 @@ function debugLog(message) {
 
   if (!debugLogEl) return;
 
-  debugPanelEl.style.display =
-    "block";
-
   debugCounter++;
 
   debugLogEl.textContent =
@@ -843,13 +840,10 @@ debugEnabledEl?.addEventListener(
   "change",
   () => {
     if (
-      debugEnabledEl.checked
+      !debugEnabledEl.checked &&
+      debugLogEl
     ) {
-      debugPanelEl.style.display =
-        "block";
-    } else {
-      debugPanelEl.style.display =
-        "none";
+      debugLogEl.textContent = "";
     }
   }
 );
