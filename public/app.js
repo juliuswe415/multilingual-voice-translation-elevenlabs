@@ -93,6 +93,7 @@ function sendPcmChunk(floatSamples) {
 
   if (echoMode === "threshold") {
     const rms = calculateRMS(floatSamples);
+    console.log("RMS:", rms, "isAgentSpeaking:", isAgentSpeaking);
     const threshold = isAgentSpeaking
       ? THRESHOLD_AGENT_SPEAKING
       : THRESHOLD_IDLE;
