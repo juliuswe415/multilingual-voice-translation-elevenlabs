@@ -16,8 +16,13 @@ let agentSpeakingTimeout = null;
 const SAMPLE_RATE_OUT = 16000;
 const CHUNK_SAMPLES = 1600;
 
-const THRESHOLD_IDLE = 0.0008;
+const THRESHOLD_IDLE = 0.001;
 const THRESHOLD_AGENT_SPEAKING = 0.04;
+
+const SEND_WINDOW_IDLE_MS = 1400;
+const SEND_WINDOW_AGENT_SPEAKING_MS = 600;
+
+let sendUntilTime = 0;
 
 let pcmBuffer = [];
 
@@ -136,11 +141,23 @@ function sendPcmChunk(floatSamples) {
       ? THRESHOLD_AGENT_SPEAKING
       : THRESHOLD_IDLE;
 
+    const windowMs = isAgentSpeaking
+      ? SEND_WINDOW_AGENT_SPEAKING_MS
+      : SEND_WINDOW_IDLE_MS;
+
+    const now = performance.now();
+
+    if (rms >= threshold) {
+      sendUntilTime = now + windowMs;
+    }
+
+    const shouldSend = now <= sendUntilTime;
+
     debugLog(
-      `RMS=${rms.toFixed(5)} threshold=${threshold} speaking=${isAgentSpeaking}`
+      `RMS=${rms.toFixed(5)} threshold=${threshold} speaking=${isAgentSpeaking} send=${shouldSend}`
     );
 
-    if (rms < threshold) {
+    if (!shouldSend) {
       return;
     }
   }
@@ -495,6 +512,8 @@ function stopTranslator() {
   clearTimeout(agentSpeakingTimeout);
 
   agentSpeakingTimeout = null;
+
+  sendUntilTime = 0;
 
   if (workletNode) {
     workletNode.disconnect();
