@@ -10,9 +10,15 @@ let outputCtx = null;
 let nextPlayTime = 0;
 
 let isRunning = false;
+let isAgentSpeaking = false;
+let agentSpeakingTimeout = null;
 
 const SAMPLE_RATE_OUT = 16000;
 const CHUNK_SAMPLES = 1600; // 100 ms pri 16 kHz
+
+const THRESHOLD_IDLE = 0.012;
+const THRESHOLD_AGENT_SPEAKING = 0.08;
+
 let pcmBuffer = [];
 
 const startBtn = document.getElementById("startBtn");
@@ -21,6 +27,20 @@ const statusEl = document.getElementById("status");
 function updateStatus(message, type = "default") {
   statusEl.textContent = `Status: ${message}`;
   statusEl.className = type;
+}
+
+function getEchoMode() {
+  return document.querySelector('input[name="echoMode"]:checked')?.value || "threshold";
+}
+
+function calculateRMS(floatSamples) {
+  let sum = 0;
+
+  for (let i = 0; i < floatSamples.length; i++) {
+    sum += floatSamples[i] * floatSamples[i];
+  }
+
+  return Math.sqrt(sum / floatSamples.length);
 }
 
 function floatTo16BitPCM(float32Array) {
@@ -65,6 +85,23 @@ function downsampleTo16k(input, inputSampleRate) {
 function sendPcmChunk(floatSamples) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
+  const echoMode = getEchoMode();
+
+  if (isAgentSpeaking && echoMode === "mute") {
+    return;
+  }
+
+  if (echoMode === "threshold") {
+    const rms = calculateRMS(floatSamples);
+    const threshold = isAgentSpeaking
+      ? THRESHOLD_AGENT_SPEAKING
+      : THRESHOLD_IDLE;
+
+    if (rms < threshold) {
+      return;
+    }
+  }
+
   const pcm16 = floatTo16BitPCM(floatSamples);
   const base64Audio = arrayBufferToBase64(pcm16.buffer);
 
@@ -88,6 +125,8 @@ function handleInputSamples(samples, inputSampleRate) {
 }
 
 function playPcm16Base64(base64Audio) {
+  isAgentSpeaking = true;
+
   const binary = atob(base64Audio);
   const byteLength = binary.length;
   const bytes = new Uint8Array(byteLength);
@@ -120,6 +159,17 @@ function playPcm16Base64(base64Audio) {
   source.start(startTime);
 
   nextPlayTime = startTime + audioBuffer.duration;
+
+  clearTimeout(agentSpeakingTimeout);
+
+  const remainingMs = Math.max(
+    300,
+    (nextPlayTime - outputCtx.currentTime) * 1000 + 250
+  );
+
+  agentSpeakingTimeout = setTimeout(() => {
+    isAgentSpeaking = false;
+  }, remainingMs);
 }
 
 function startLocalRecording(stream) {
@@ -201,6 +251,8 @@ async function startTranslator() {
     if (!signedUrl) {
       throw new Error("No signedUrl received");
     }
+
+    console.log("signedUrl:", signedUrl);
 
     updateStatus("Requesting microphone...", "default");
 
@@ -285,6 +337,10 @@ async function startTranslator() {
 
 function stopTranslator() {
   isRunning = false;
+  isAgentSpeaking = false;
+
+  clearTimeout(agentSpeakingTimeout);
+  agentSpeakingTimeout = null;
 
   if (workletNode) {
     workletNode.disconnect();
