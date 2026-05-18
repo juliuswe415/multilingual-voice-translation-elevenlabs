@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Slovak English Translator</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div class="container">
@@ -26,13 +26,24 @@
 
     <div class="form-group">
       <label>Echo handling</label>
+
       <div class="radio-group">
         <label>
-          <input type="radio" name="echoMode" value="threshold" checked>
+          <input
+            type="radio"
+            name="echoMode"
+            value="threshold"
+            checked
+          />
           Quasi-AEC threshold
         </label>
+
         <label>
-          <input type="radio" name="echoMode" value="mute">
+          <input
+            type="radio"
+            name="echoMode"
+            value="mute"
+          />
           Mute mic during TTS
         </label>
       </div>
@@ -41,6 +52,11 @@
     <button id="startBtn">Start Translation</button>
 
     <p id="status">Status: Idle</p>
+
+    <div id="debugPanel">
+      <strong>Debug</strong>
+      <pre id="debugLog"></pre>
+    </div>
   </div>
 
   <script type="module" src="/app.js"></script>
