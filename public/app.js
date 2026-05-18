@@ -24,25 +24,17 @@ const PRE_ROLL_MS = 300;
 const SEND_WINDOW_IDLE_MS = 1500;
 const SEND_WINDOW_AGENT_SPEAKING_MS = 700;
 
-const PRE_ROLL_CHUNKS =
-  Math.ceil(PRE_ROLL_MS / 100);
+const PRE_ROLL_CHUNKS = Math.ceil(PRE_ROLL_MS / 100);
 
 let sendUntilTime = 0;
-
 let preRollChunks = [];
-
 let isSendingWindowActive = false;
 
 let pcmBuffer = [];
 
-const startBtn =
-  document.getElementById("startBtn");
-
-const statusEl =
-  document.getElementById("status");
-
-const debugLogEl =
-  document.getElementById("debugLog");
+const startBtn = document.getElementById("startBtn");
+const statusEl = document.getElementById("status");
+const debugLogEl = document.getElementById("debugLog");
 
 let debugCounter = 0;
 
@@ -52,66 +44,41 @@ function debugLog(message) {
   debugCounter++;
 
   debugLogEl.textContent =
-    `[${debugCounter}] ${message}\n` +
-    debugLogEl.textContent;
+    `[${debugCounter}] ${message}\n` + debugLogEl.textContent;
 
-  const lines =
-    debugLogEl.textContent
-      .split("\n")
-      .slice(0, 25);
-
-  debugLogEl.textContent =
-    lines.join("\n");
+  const lines = debugLogEl.textContent.split("\n").slice(0, 25);
+  debugLogEl.textContent = lines.join("\n");
 }
 
 function updateStatus(message, type = "default") {
-  statusEl.textContent =
-    `Status: ${message}`;
-
+  statusEl.textContent = `Status: ${message}`;
   statusEl.className = type;
 }
 
 function getEchoMode() {
-  return document.querySelector(
-    'input[name="echoMode"]:checked'
-  )?.value || "threshold";
+  return document.querySelector('input[name="echoMode"]:checked')?.value || "mute";
 }
 
 function calculateRMS(floatSamples) {
   let sum = 0;
 
   for (let i = 0; i < floatSamples.length; i++) {
-    sum +=
-      floatSamples[i] *
-      floatSamples[i];
+    sum += floatSamples[i] * floatSamples[i];
   }
 
-  return Math.sqrt(
-    sum / floatSamples.length
-  );
+  return Math.sqrt(sum / floatSamples.length);
 }
 
 function floatTo16BitPCM(float32Array) {
-  const buffer =
-    new ArrayBuffer(
-      float32Array.length * 2
-    );
-
-  const view =
-    new DataView(buffer);
+  const buffer = new ArrayBuffer(float32Array.length * 2);
+  const view = new DataView(buffer);
 
   for (let i = 0; i < float32Array.length; i++) {
-    let sample =
-      Math.max(
-        -1,
-        Math.min(1, float32Array[i])
-      );
+    const sample = Math.max(-1, Math.min(1, float32Array[i]));
 
     view.setInt16(
       i * 2,
-      sample < 0
-        ? sample * 0x8000
-        : sample * 0x7fff,
+      sample < 0 ? sample * 0x8000 : sample * 0x7fff,
       true
     );
   }
@@ -121,169 +88,86 @@ function floatTo16BitPCM(float32Array) {
 
 function arrayBufferToBase64(buffer) {
   let binary = "";
-
-  const bytes =
-    new Uint8Array(buffer);
-
+  const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
 
-  for (
-    let i = 0;
-    i < bytes.length;
-    i += chunkSize
-  ) {
-    binary +=
-      String.fromCharCode(
-        ...bytes.subarray(
-          i,
-          i + chunkSize
-        )
-      );
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
 
   return btoa(binary);
 }
 
-function downsampleTo16k(
-  input,
-  inputSampleRate
-) {
-  if (
-    inputSampleRate ===
-    SAMPLE_RATE_OUT
-  ) {
+function downsampleTo16k(input, inputSampleRate) {
+  if (inputSampleRate === SAMPLE_RATE_OUT) {
     return input;
   }
 
-  const ratio =
-    inputSampleRate /
-    SAMPLE_RATE_OUT;
+  const ratio = inputSampleRate / SAMPLE_RATE_OUT;
+  const outputLength = Math.floor(input.length / ratio);
+  const output = new Float32Array(outputLength);
 
-  const outputLength =
-    Math.floor(
-      input.length / ratio
-    );
-
-  const output =
-    new Float32Array(
-      outputLength
-    );
-
-  for (
-    let i = 0;
-    i < outputLength;
-    i++
-  ) {
-    const sourceIndex =
-      Math.floor(i * ratio);
-
-    output[i] =
-      input[sourceIndex];
+  for (let i = 0; i < outputLength; i++) {
+    const sourceIndex = Math.floor(i * ratio);
+    output[i] = input[sourceIndex];
   }
 
   return output;
 }
 
-function reallySendPcmChunk(
-  floatSamples
-) {
-  const pcm16 =
-    floatTo16BitPCM(
-      floatSamples
-    );
+function reallySendPcmChunk(floatSamples) {
+  const pcm16 = floatTo16BitPCM(floatSamples);
+  const base64Audio = arrayBufferToBase64(pcm16.buffer);
 
-  const base64Audio =
-    arrayBufferToBase64(
-      pcm16.buffer
-    );
-
-  ws.send(
-    JSON.stringify({
-      user_audio_chunk:
-        base64Audio
-    })
-  );
+  ws.send(JSON.stringify({
+    user_audio_chunk: base64Audio
+  }));
 }
 
-function sendPcmChunk(
-  floatSamples
-) {
-  if (
-    !ws ||
-    ws.readyState !==
-      WebSocket.OPEN
-  ) {
+function sendPcmChunk(floatSamples) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
     return;
   }
 
-  const echoMode =
-    getEchoMode();
+  const echoMode = getEchoMode();
 
-  if (
-    isAgentSpeaking &&
-    echoMode === "mute"
-  ) {
+  if (isAgentSpeaking && echoMode === "mute") {
     return;
   }
 
-  if (
-    echoMode !== "threshold"
-  ) {
-    reallySendPcmChunk(
-      floatSamples
-    );
-
+  if (echoMode !== "threshold") {
+    reallySendPcmChunk(floatSamples);
     return;
   }
 
-  const rms =
-    calculateRMS(
-      floatSamples
-    );
+  const rms = calculateRMS(floatSamples);
 
-  const threshold =
-    isAgentSpeaking
-      ? THRESHOLD_AGENT_SPEAKING
-      : THRESHOLD_IDLE;
+  const threshold = isAgentSpeaking
+    ? THRESHOLD_AGENT_SPEAKING
+    : THRESHOLD_IDLE;
 
-  const windowMs =
-    isAgentSpeaking
-      ? SEND_WINDOW_AGENT_SPEAKING_MS
-      : SEND_WINDOW_IDLE_MS;
+  const windowMs = isAgentSpeaking
+    ? SEND_WINDOW_AGENT_SPEAKING_MS
+    : SEND_WINDOW_IDLE_MS;
 
-  const now =
-    performance.now();
+  const now = performance.now();
 
-  preRollChunks.push(
-    floatSamples
-  );
+  preRollChunks.push(floatSamples);
 
-  if (
-    preRollChunks.length >
-    PRE_ROLL_CHUNKS
-  ) {
+  if (preRollChunks.length > PRE_ROLL_CHUNKS) {
     preRollChunks.shift();
   }
 
-  const triggered =
-    rms >= threshold;
+  const triggered = rms >= threshold;
 
   if (triggered) {
-    sendUntilTime =
-      now + windowMs;
+    sendUntilTime = now + windowMs;
 
-    if (
-      !isSendingWindowActive
-    ) {
-      isSendingWindowActive =
-        true;
+    if (!isSendingWindowActive) {
+      isSendingWindowActive = true;
 
-      for (
-        const chunk of preRollChunks
-      ) {
-        reallySendPcmChunk(
-          chunk
-        );
+      for (const chunk of preRollChunks) {
+        reallySendPcmChunk(chunk);
       }
 
       debugLog(
@@ -294,252 +178,112 @@ function sendPcmChunk(
     }
   }
 
-  const shouldSend =
-    now <= sendUntilTime;
+  const shouldSend = now <= sendUntilTime;
 
   debugLog(
     `RMS=${rms.toFixed(5)} threshold=${threshold} speaking=${isAgentSpeaking} active=${isSendingWindowActive} send=${shouldSend}`
   );
 
   if (shouldSend) {
-    reallySendPcmChunk(
-      floatSamples
-    );
+    reallySendPcmChunk(floatSamples);
   } else {
-    isSendingWindowActive =
-      false;
+    isSendingWindowActive = false;
   }
 }
 
-function handleInputSamples(
-  samples,
-  inputSampleRate
-) {
-  const downsampled =
-    downsampleTo16k(
-      samples,
-      inputSampleRate
-    );
+function handleInputSamples(samples, inputSampleRate) {
+  const downsampled = downsampleTo16k(samples, inputSampleRate);
 
-  for (
-    const sample of downsampled
-  ) {
+  for (const sample of downsampled) {
     pcmBuffer.push(sample);
 
-    if (
-      pcmBuffer.length >=
-      CHUNK_SAMPLES
-    ) {
-      const chunk =
-        new Float32Array(
-          pcmBuffer.slice(
-            0,
-            CHUNK_SAMPLES
-          )
-        );
-
-      pcmBuffer =
-        pcmBuffer.slice(
-          CHUNK_SAMPLES
-        );
+    if (pcmBuffer.length >= CHUNK_SAMPLES) {
+      const chunk = new Float32Array(pcmBuffer.slice(0, CHUNK_SAMPLES));
+      pcmBuffer = pcmBuffer.slice(CHUNK_SAMPLES);
 
       sendPcmChunk(chunk);
     }
   }
 }
 
-function playPcm16Base64(
-  base64Audio
-) {
+function playPcm16Base64(base64Audio) {
   isAgentSpeaking = true;
 
-  const binary =
-    atob(base64Audio);
+  const binary = atob(base64Audio);
+  const byteLength = binary.length;
+  const bytes = new Uint8Array(byteLength);
 
-  const byteLength =
-    binary.length;
-
-  const bytes =
-    new Uint8Array(
-      byteLength
-    );
-
-  for (
-    let i = 0;
-    i < byteLength;
-    i++
-  ) {
-    bytes[i] =
-      binary.charCodeAt(i);
+  for (let i = 0; i < byteLength; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
 
-  const sampleCount =
-    bytes.length / 2;
+  const sampleCount = bytes.length / 2;
+  const floatSamples = new Float32Array(sampleCount);
+  const view = new DataView(bytes.buffer);
 
-  const floatSamples =
-    new Float32Array(
-      sampleCount
-    );
-
-  const view =
-    new DataView(
-      bytes.buffer
-    );
-
-  for (
-    let i = 0;
-    i < sampleCount;
-    i++
-  ) {
-    floatSamples[i] =
-      view.getInt16(
-        i * 2,
-        true
-      ) / 32768;
+  for (let i = 0; i < sampleCount; i++) {
+    floatSamples[i] = view.getInt16(i * 2, true) / 32768;
   }
 
   if (!outputCtx) {
-    outputCtx =
-      new AudioContext();
-
-    nextPlayTime =
-      outputCtx.currentTime;
+    outputCtx = new AudioContext();
+    nextPlayTime = outputCtx.currentTime;
   }
 
-  const audioBuffer =
-    outputCtx.createBuffer(
-      1,
-      sampleCount,
-      SAMPLE_RATE_OUT
-    );
+  const audioBuffer = outputCtx.createBuffer(1, sampleCount, SAMPLE_RATE_OUT);
+  audioBuffer.copyToChannel(floatSamples, 0);
 
-  audioBuffer.copyToChannel(
-    floatSamples,
-    0
-  );
+  const source = outputCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(outputCtx.destination);
 
-  const source =
-    outputCtx.createBufferSource();
-
-  source.buffer =
-    audioBuffer;
-
-  source.connect(
-    outputCtx.destination
-  );
-
-  const startTime =
-    Math.max(
-      outputCtx.currentTime,
-      nextPlayTime
-    );
-
+  const startTime = Math.max(outputCtx.currentTime, nextPlayTime);
   source.start(startTime);
 
-  nextPlayTime =
-    startTime +
-    audioBuffer.duration;
+  nextPlayTime = startTime + audioBuffer.duration;
 
-  clearTimeout(
-    agentSpeakingTimeout
+  clearTimeout(agentSpeakingTimeout);
+
+  const remainingMs = Math.max(
+    300,
+    (nextPlayTime - outputCtx.currentTime) * 1000 + 250
   );
 
-  const remainingMs =
-    Math.max(
-      300,
-      (
-        nextPlayTime -
-        outputCtx.currentTime
-      ) * 1000 + 250
-    );
-
-  agentSpeakingTimeout =
-    setTimeout(() => {
-      isAgentSpeaking =
-        false;
-    }, remainingMs);
+  agentSpeakingTimeout = setTimeout(() => {
+    isAgentSpeaking = false;
+  }, remainingMs);
 }
 
-function startLocalRecording(
-  stream
-) {
+function startLocalRecording(stream) {
   recordedChunks = [];
 
-  recorder =
-    new MediaRecorder(stream);
+  recorder = new MediaRecorder(stream);
 
-  recorder.ondataavailable =
-    (event) => {
-      if (
-        event.data &&
-        event.data.size > 0
-      ) {
-        recordedChunks.push(
-          event.data
-        );
-      }
-    };
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
 
   recorder.onstop = () => {
-    if (
-      !recordedChunks.length
-    ) {
-      return;
-    }
+    if (!recordedChunks.length) return;
 
-    const blob =
-      new Blob(
-        recordedChunks,
-        {
-          type:
-            "audio/webm"
-        }
-      );
+    const blob = new Blob(recordedChunks, { type: "audio/webm" });
+    const url = URL.createObjectURL(blob);
 
-    const url =
-      URL.createObjectURL(
-        blob
-      );
+    const oldLink = document.getElementById("recordingDownloadLink");
+    if (oldLink) oldLink.remove();
 
-    const oldLink =
-      document.getElementById(
-        "recordingDownloadLink"
-      );
-
-    if (oldLink) {
-      oldLink.remove();
-    }
-
-    const a =
-      document.createElement(
-        "a"
-      );
-
-    a.id =
-      "recordingDownloadLink";
-
+    const a = document.createElement("a");
+    a.id = "recordingDownloadLink";
     a.href = url;
+    a.download = `mic-test-${Date.now()}.webm`;
+    a.textContent = "Download recorded mic audio";
+    a.style.display = "block";
+    a.style.marginTop = "15px";
+    a.style.textAlign = "center";
 
-    a.download =
-      `mic-test-${Date.now()}.webm`;
-
-    a.textContent =
-      "Download recorded mic audio";
-
-    a.style.display =
-      "block";
-
-    a.style.marginTop =
-      "15px";
-
-    a.style.textAlign =
-      "center";
-
-    document
-      .querySelector(
-        ".container"
-      )
-      .appendChild(a);
+    document.querySelector(".container").appendChild(a);
   };
 
   recorder.start();
@@ -559,333 +303,177 @@ async function createAudioWorklet() {
       }
     }
 
-    registerProcessor(
-      "mic-processor",
-      MicProcessor
-    );
+    registerProcessor("mic-processor", MicProcessor);
   `;
 
-  const blob =
-    new Blob(
-      [workletCode],
-      {
-        type:
-          "application/javascript"
-      }
-    );
+  const blob = new Blob([workletCode], { type: "application/javascript" });
+  const url = URL.createObjectURL(blob);
 
-  const url =
-    URL.createObjectURL(
-      blob
-    );
-
-  await audioCtx.audioWorklet
-    .addModule(url);
+  await audioCtx.audioWorklet.addModule(url);
 
   URL.revokeObjectURL(url);
 }
 
 async function startTranslator() {
-  if (isRunning) {
-    return;
-  }
+  if (isRunning) return;
 
   try {
     isRunning = true;
+    startBtn.disabled = true;
 
-    startBtn.disabled =
-      true;
+    updateStatus("Getting ElevenLabs WebSocket URL...", "default");
 
-    updateStatus(
-      "Getting ElevenLabs WebSocket URL...",
-      "default"
-    );
+    const authResponse = await fetch("/api/get-signed-url");
 
-    const authResponse =
-      await fetch(
-        "/api/get-signed-url"
-      );
-
-    if (
-      !authResponse.ok
-    ) {
-      throw new Error(
-        `Failed to get signed URL (${authResponse.status})`
-      );
+    if (!authResponse.ok) {
+      throw new Error(`Failed to get signed URL (${authResponse.status})`);
     }
 
-    const {
-      signedUrl
-    } =
-      await authResponse.json();
+    const { signedUrl } = await authResponse.json();
 
     if (!signedUrl) {
-      throw new Error(
-        "No signedUrl received"
-      );
+      throw new Error("No signedUrl received");
     }
 
-    debugLog(
-      `signedUrl=${signedUrl}`
-    );
+    debugLog(`signedUrl=${signedUrl}`);
 
-    updateStatus(
-      "Requesting microphone...",
-      "default"
-    );
+    updateStatus("Requesting microphone...", "default");
 
-    micStream =
-      await navigator.mediaDevices
-        .getUserMedia({
-          audio: {
-            echoCancellation:
-              false,
-            noiseSuppression:
-              false,
-            autoGainControl:
-              false
-          }
-        });
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
 
-    startLocalRecording(
-      micStream
-    );
+    startLocalRecording(micStream);
 
-    updateStatus(
-      "Opening ElevenLabs WebSocket...",
-      "default"
-    );
+    updateStatus("Opening ElevenLabs WebSocket...", "default");
 
-    ws =
-      new WebSocket(
-        signedUrl
-      );
+    ws = new WebSocket(signedUrl);
 
-    ws.onopen =
-      async () => {
-        updateStatus(
-          "WebSocket connected",
-          "active"
-        );
+    ws.onopen = async () => {
+      updateStatus("WebSocket connected", "active");
 
-        ws.send(
-          JSON.stringify({
-            type:
-              "conversation_initiation_client_data"
-          })
-        );
+      ws.send(JSON.stringify({
+        type: "conversation_initiation_client_data"
+      }));
 
-        audioCtx =
-          new AudioContext();
+      audioCtx = new AudioContext();
 
-        await createAudioWorklet();
+      await createAudioWorklet();
 
-        const source =
-          audioCtx.createMediaStreamSource(
-            micStream
-          );
+      const source = audioCtx.createMediaStreamSource(micStream);
 
-        workletNode =
-          new AudioWorkletNode(
-            audioCtx,
-            "mic-processor"
-          );
+      workletNode = new AudioWorkletNode(audioCtx, "mic-processor");
 
-        workletNode.port.onmessage =
-          (event) => {
-            handleInputSamples(
-              event.data,
-              audioCtx.sampleRate
-            );
-          };
-
-        source.connect(
-          workletNode
-        );
-
-        startBtn.textContent =
-          "Stop Translation";
-
-        startBtn.disabled =
-          false;
+      workletNode.port.onmessage = (event) => {
+        handleInputSamples(event.data, audioCtx.sampleRate);
       };
 
-    ws.onmessage =
-      (event) => {
-        try {
-          const msg =
-            JSON.parse(
-              event.data
-            );
+      source.connect(workletNode);
 
-          if (
-            msg.user_transcript
-              ?.text
-          ) {
-            updateStatus(
-              `User: ${msg.user_transcript.text}`,
-              "active"
-            );
-          }
+      startBtn.textContent = "Stop Translation";
+      startBtn.disabled = false;
+    };
 
-          if (
-            msg.agent_response
-              ?.response
-          ) {
-            updateStatus(
-              `AI: ${msg.agent_response.response}`,
-              "active"
-            );
-          }
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
 
-          if (
-            msg.audio_event
-              ?.audio_base_64
-          ) {
-            playPcm16Base64(
-              msg.audio_event
-                .audio_base_64
-            );
-          }
-
-          if (
-            msg.ping_event
-              ?.event_id
-          ) {
-            ws.send(
-              JSON.stringify({
-                type:
-                  "pong",
-                event_id:
-                  msg.ping_event
-                    .event_id
-              })
-            );
-          }
-        } catch (error) {
-          debugLog(
-            `WS parse error: ${error.message}`
-          );
+        if (msg.user_transcript?.text) {
+          updateStatus(`User: ${msg.user_transcript.text}`, "active");
         }
-      };
+
+        if (msg.agent_response?.response) {
+          updateStatus(`AI: ${msg.agent_response.response}`, "active");
+        }
+
+        if (msg.audio_event?.audio_base_64) {
+          playPcm16Base64(msg.audio_event.audio_base_64);
+        }
+
+        if (msg.ping_event?.event_id) {
+          ws.send(JSON.stringify({
+            type: "pong",
+            event_id: msg.ping_event.event_id
+          }));
+        }
+      } catch (error) {
+        debugLog(`WS parse error: ${error.message}`);
+      }
+    };
 
     ws.onerror = () => {
-      updateStatus(
-        "WebSocket error",
-        "error"
-      );
-
+      updateStatus("WebSocket error", "error");
       stopTranslator();
     };
 
     ws.onclose = () => {
-      updateStatus(
-        "Disconnected",
-        "default"
-      );
-
+      updateStatus("Disconnected", "default");
       stopTranslator();
     };
 
   } catch (error) {
-    updateStatus(
-      `Error: ${error.message}`,
-      "error"
-    );
-
+    updateStatus(`Error: ${error.message}`, "error");
     stopTranslator();
   }
 }
 
 function stopTranslator() {
   isRunning = false;
+  isAgentSpeaking = false;
 
-  isAgentSpeaking =
-    false;
-
-  clearTimeout(
-    agentSpeakingTimeout
-  );
-
-  agentSpeakingTimeout =
-    null;
+  clearTimeout(agentSpeakingTimeout);
+  agentSpeakingTimeout = null;
 
   sendUntilTime = 0;
-
   preRollChunks = [];
-
-  isSendingWindowActive =
-    false;
+  isSendingWindowActive = false;
 
   if (workletNode) {
     workletNode.disconnect();
-
     workletNode = null;
   }
 
   if (audioCtx) {
-    audioCtx.close()
-      .catch(() => {});
-
+    audioCtx.close().catch(() => {});
     audioCtx = null;
   }
 
   if (outputCtx) {
-    outputCtx.close()
-      .catch(() => {});
-
+    outputCtx.close().catch(() => {});
     outputCtx = null;
   }
 
-  if (
-    recorder &&
-    recorder.state !==
-      "inactive"
-  ) {
+  if (recorder && recorder.state !== "inactive") {
     recorder.stop();
   }
 
   recorder = null;
 
   if (micStream) {
-    micStream
-      .getTracks()
-      .forEach(
-        track =>
-          track.stop()
-      );
-
+    micStream.getTracks().forEach(track => track.stop());
     micStream = null;
   }
 
-  if (
-    ws &&
-    ws.readyState ===
-      WebSocket.OPEN
-  ) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
     ws.close();
   }
 
   ws = null;
-
   pcmBuffer = [];
-
   nextPlayTime = 0;
 
-  startBtn.textContent =
-    "Start Translation";
-
-  startBtn.disabled =
-    false;
+  startBtn.textContent = "Start Translation";
+  startBtn.disabled = false;
 }
 
-startBtn.addEventListener(
-  "click",
-  async () => {
-    if (isRunning) {
-      stopTranslator();
-    } else {
-      await startTranslator();
-    }
+startBtn.addEventListener("click", async () => {
+  if (isRunning) {
+    stopTranslator();
+  } else {
+    await startTranslator();
   }
-);
+});
