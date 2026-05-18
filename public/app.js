@@ -20,25 +20,53 @@ const THRESHOLD_IDLE = 0.001;
 const THRESHOLD_AGENT_SPEAKING = 0.04;
 
 const PRE_ROLL_MS = 300;
+
 const SEND_WINDOW_IDLE_MS = 1500;
 const SEND_WINDOW_AGENT_SPEAKING_MS = 700;
 
-const PRE_ROLL_CHUNKS = Math.ceil(PRE_ROLL_MS / 100);
+const PRE_ROLL_CHUNKS =
+  Math.ceil(PRE_ROLL_MS / 100);
 
 let sendUntilTime = 0;
+
 let preRollChunks = [];
+
 let isSendingWindowActive = false;
 
 let pcmBuffer = [];
 
-const startBtn = document.getElementById("startBtn");
-const statusEl = document.getElementById("status");
-const debugLogEl = document.getElementById("debugLog");
+const startBtn =
+  document.getElementById("startBtn");
+
+const statusEl =
+  document.getElementById("status");
+
+const debugLogEl =
+  document.getElementById("debugLog");
+
+const debugEnabledEl =
+  document.getElementById(
+    "debugEnabled"
+  );
+
+const debugPanelEl =
+  document.getElementById(
+    "debugPanel"
+  );
 
 let debugCounter = 0;
 
 function debugLog(message) {
+  if (
+    !debugEnabledEl?.checked
+  ) {
+    return;
+  }
+
   if (!debugLogEl) return;
+
+  debugPanelEl.style.display =
+    "block";
 
   debugCounter++;
 
@@ -55,7 +83,10 @@ function debugLog(message) {
     lines.join("\n");
 }
 
-function updateStatus(message, type = "default") {
+function updateStatus(
+  message,
+  type = "default"
+) {
   statusEl.textContent =
     `Status: ${message}`;
 
@@ -68,10 +99,16 @@ function getEchoMode() {
   )?.value || "mute";
 }
 
-function calculateRMS(floatSamples) {
+function calculateRMS(
+  floatSamples
+) {
   let sum = 0;
 
-  for (let i = 0; i < floatSamples.length; i++) {
+  for (
+    let i = 0;
+    i < floatSamples.length;
+    i++
+  ) {
     sum +=
       floatSamples[i] *
       floatSamples[i];
@@ -82,7 +119,9 @@ function calculateRMS(floatSamples) {
   );
 }
 
-function floatTo16BitPCM(float32Array) {
+function floatTo16BitPCM(
+  float32Array
+) {
   const buffer =
     new ArrayBuffer(
       float32Array.length * 2
@@ -91,11 +130,18 @@ function floatTo16BitPCM(float32Array) {
   const view =
     new DataView(buffer);
 
-  for (let i = 0; i < float32Array.length; i++) {
+  for (
+    let i = 0;
+    i < float32Array.length;
+    i++
+  ) {
     const sample =
       Math.max(
         -1,
-        Math.min(1, float32Array[i])
+        Math.min(
+          1,
+          float32Array[i]
+        )
       );
 
     view.setInt16(
@@ -110,7 +156,9 @@ function floatTo16BitPCM(float32Array) {
   return new Uint8Array(buffer);
 }
 
-function arrayBufferToBase64(buffer) {
+function arrayBufferToBase64(
+  buffer
+) {
   let binary = "";
 
   const bytes =
@@ -780,10 +828,28 @@ function stopTranslator() {
     false;
 }
 
-startBtn.addEventListener("click", async () => {
-  if (isRunning) {
-    stopTranslator();
-  } else {
-    await startTranslator();
+startBtn.addEventListener(
+  "click",
+  async () => {
+    if (isRunning) {
+      stopTranslator();
+    } else {
+      await startTranslator();
+    }
   }
-});
+);
+
+debugEnabledEl?.addEventListener(
+  "change",
+  () => {
+    if (
+      debugEnabledEl.checked
+    ) {
+      debugPanelEl.style.display =
+        "block";
+    } else {
+      debugPanelEl.style.display =
+        "none";
+    }
+  }
+);
