@@ -2,12 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   />
 
-  <title>Slovak English Translator</title>
+  <title>
+    Slovak English Translator
+  </title>
 
   <link
     rel="stylesheet"
@@ -16,6 +19,7 @@
 </head>
 
 <body>
+
   <div class="container">
 
     <h1>
@@ -26,11 +30,13 @@
     <div class="translator-info">
 
       <div class="language-block">
+
         <span class="label">
           Speak
         </span>
 
         <div class="language-card">
+
           <span class="flag">
             🇸🇰
           </span>
@@ -38,7 +44,9 @@
           <span class="language">
             Slovak
           </span>
+
         </div>
+
       </div>
 
       <div class="arrow">
@@ -46,11 +54,13 @@
       </div>
 
       <div class="language-block">
+
         <span class="label">
           Translation
         </span>
 
         <div class="language-card">
+
           <span class="flag">
             🇬🇧
           </span>
@@ -58,7 +68,9 @@
           <span class="language">
             English
           </span>
+
         </div>
+
       </div>
 
     </div>
@@ -93,6 +105,7 @@
         </label>
 
       </div>
+
     </div>
 
     <button id="startBtn">
@@ -102,6 +115,21 @@
     <p id="status">
       Status: Idle
     </p>
+
+    <div class="debug-toggle">
+
+      <label>
+
+        <input
+          type="checkbox"
+          id="debugEnabled"
+        />
+
+        Active debug window
+
+      </label>
+
+    </div>
 
     <div id="debugPanel">
 
@@ -119,5 +147,6 @@
     type="module"
     src="/app.js"
   ></script>
+
 </body>
 </html>
