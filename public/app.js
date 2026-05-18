@@ -20,10 +20,8 @@ const THRESHOLD_IDLE = 0.001;
 const THRESHOLD_AGENT_SPEAKING = 0.04;
 
 const PRE_ROLL_MS = 300;
-
 const SEND_WINDOW_IDLE_MS = 1500;
 const SEND_WINDOW_AGENT_SPEAKING_MS = 700;
-
 const PRE_ROLL_CHUNKS = Math.ceil(PRE_ROLL_MS / 100);
 
 let sendUntilTime = 0;
@@ -99,9 +97,7 @@ function arrayBufferToBase64(buffer) {
 }
 
 function downsampleTo16k(input, inputSampleRate) {
-  if (inputSampleRate === SAMPLE_RATE_OUT) {
-    return input;
-  }
+  if (inputSampleRate === SAMPLE_RATE_OUT) return input;
 
   const ratio = inputSampleRate / SAMPLE_RATE_OUT;
   const outputLength = Math.floor(input.length / ratio);
@@ -125,9 +121,7 @@ function reallySendPcmChunk(floatSamples) {
 }
 
 function sendPcmChunk(floatSamples) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    return;
-  }
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
   const echoMode = getEchoMode();
 
@@ -210,10 +204,9 @@ function playPcm16Base64(base64Audio) {
   isAgentSpeaking = true;
 
   const binary = atob(base64Audio);
-  const byteLength = binary.length;
-  const bytes = new Uint8Array(byteLength);
+  const bytes = new Uint8Array(binary.length);
 
-  for (let i = 0; i < byteLength; i++) {
+  for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
 
