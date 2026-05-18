@@ -9,9 +9,6 @@
 body {
   font-family: Arial, sans-serif;
 
-  font-size:
-    calc(16px * var(--ui-scale));
-
   min-height: 100vh;
 
   margin: 0;
@@ -45,6 +42,12 @@ body {
     rgba(0, 0, 0, 0.22);
 
   overflow: hidden;
+
+  transform:
+    scale(var(--ui-scale));
+
+  transform-origin:
+    top center;
 }
 
 h1 {
@@ -270,7 +273,7 @@ button:disabled {
 }
 
 #debugPanel {
-  display: none;
+  display: block;
 
   margin-top: 12px;
 
