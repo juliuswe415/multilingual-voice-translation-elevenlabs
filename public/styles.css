@@ -1,11 +1,21 @@
+:root {
+  --ui-scale: 0.82;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   font-family: Arial, sans-serif;
+
+  font-size:
+    calc(16px * var(--ui-scale));
+
   min-height: 100vh;
+
   margin: 0;
+
   padding: 24px 14px;
 
   background:
@@ -239,10 +249,32 @@ button:disabled {
   border-radius: 16px;
 }
 
-#debugPanel {
-  margin-top: 20px;
+.debug-toggle {
+  margin-top: 10px;
+  margin-bottom: 10px;
 
-  padding: 16px;
+  font-size: 15px;
+}
+
+.debug-toggle label {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.debug-toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+#debugPanel {
+  display: none;
+
+  margin-top: 12px;
+
+  padding: 14px;
 
   background: #111;
 
@@ -250,7 +282,7 @@ button:disabled {
 
   border-radius: 16px;
 
-  font-size: 13px;
+  font-size: 12px;
 
   max-height: 220px;
 
@@ -262,7 +294,7 @@ button:disabled {
 
   margin-bottom: 8px;
 
-  font-size: 17px;
+  font-size: 16px;
 }
 
 #debugLog {
