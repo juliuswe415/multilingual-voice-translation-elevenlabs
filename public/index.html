@@ -8,42 +8,39 @@
 </head>
 <body>
   <div class="container">
-    <h2>Slovak → English Translator</h2>
+    <h1>Slovak → English<br />Translator</h1>
 
     <div class="translator-info">
-      <div class="language-card">
+      <div class="language-block">
         <span class="label">Speak</span>
-        <span class="language">🇸🇰 Slovak</span>
+        <div class="language-card">
+          <span class="flag">🇸🇰</span>
+          <span class="language">Slovak</span>
+        </div>
       </div>
 
       <div class="arrow">→</div>
 
-      <div class="language-card">
+      <div class="language-block">
         <span class="label">Translation</span>
-        <span class="language">🇬🇧 English</span>
+        <div class="language-card">
+          <span class="flag">🇬🇧</span>
+          <span class="language">English</span>
+        </div>
       </div>
     </div>
 
     <div class="form-group">
-      <label>Echo handling</label>
+      <label class="section-label">Echo handling</label>
 
       <div class="radio-group">
         <label>
-          <input
-            type="radio"
-            name="echoMode"
-            value="threshold"
-            checked
-          />
+          <input type="radio" name="echoMode" value="threshold" />
           Quasi-AEC threshold
         </label>
 
         <label>
-          <input
-            type="radio"
-            name="echoMode"
-            value="mute"
-          />
+          <input type="radio" name="echoMode" value="mute" checked />
           Mute mic during TTS
         </label>
       </div>
