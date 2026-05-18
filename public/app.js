@@ -779,3 +779,11 @@ function stopTranslator() {
   startBtn.disabled =
     false;
 }
+
+startBtn.addEventListener("click", async () => {
+  if (isRunning) {
+    stopTranslator();
+  } else {
+    await startTranslator();
+  }
+});
